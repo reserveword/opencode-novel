@@ -1,10 +1,10 @@
 import { copyFileSync, existsSync, readdirSync } from "node:fs";
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { toRelativePosixPath } from "../../shared/fs/paths";
 import { ensureDirForFile, writeTextFile } from "../../shared/fs/write";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { slugify } from "../../shared/strings/slug";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import type { NovelSnapshotArgs, NovelSnapshotEntry, NovelSnapshotResultJson } from "./types";

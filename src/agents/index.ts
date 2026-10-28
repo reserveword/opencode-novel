@@ -1,4 +1,3 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
 import { createNovelEditorAgent } from "./editor";
 import {
   createNovelCharacterExpertAgent,
@@ -17,23 +16,23 @@ import {
 import { createNovelMuseAgent } from "./muse";
 import { createNovelAgent } from "./novel";
 import { createNovelSentinelAgent } from "./sentinel";
-import type { NovelAgentBaseName } from "./types";
+import type { NovelAgentBaseName, NovelAgentDefinition } from "./types";
 
-export type { NovelAgentBaseName } from "./types";
+export type { NovelAgentBaseName, NovelAgentDefinition } from "./types";
 
 export function createNovelAgents(options: {
   preset: "core" | "full";
   model: string;
-}): Record<NovelAgentBaseName, AgentConfig> {
+}): Record<NovelAgentBaseName, NovelAgentDefinition> {
   const core = {
     novel: createNovelAgent(options.model),
     muse: createNovelMuseAgent(options.model),
     editor: createNovelEditorAgent(options.model),
     sentinel: createNovelSentinelAgent(options.model),
-  } satisfies Record<string, AgentConfig>;
+  } satisfies Record<string, NovelAgentDefinition>;
 
   if (options.preset === "core") {
-    return core as Record<NovelAgentBaseName, AgentConfig>;
+    return core as Record<NovelAgentBaseName, NovelAgentDefinition>;
   }
 
   return {
@@ -50,5 +49,5 @@ export function createNovelAgents(options: {
     "continuation-expert": createNovelContinuationExpertAgent(options.model),
     "polish-expert": createNovelPolishExpertAgent(options.model),
     "summary-expert": createNovelSummaryExpertAgent(options.model),
-  } as Record<NovelAgentBaseName, AgentConfig>;
+  } as Record<NovelAgentBaseName, NovelAgentDefinition>;
 }

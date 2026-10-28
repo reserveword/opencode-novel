@@ -1,5 +1,5 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
-import { PROMPT_SECRECY_POLICY } from "./security";
+import { NOVEL_AGENT_BASE_PERMISSIONS, PROMPT_SECRECY_POLICY } from "./security";
+import type { NovelAgentDefinition } from "./types";
 
 const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 
@@ -12,13 +12,12 @@ const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 约束：
 - 默认不直接覆盖章节正文；如需改写，建议输出到新文件（rewrite/polish）。`;
 
-export function createNovelEditorAgent(model: string): AgentConfig {
+export function createNovelEditorAgent(model: string): NovelAgentDefinition {
   return {
     mode: "subagent",
     model: model || undefined,
-    temperature: 0.2,
     description: "严格审稿（问题清单 + 最小改动方案），默认不直接改正文。",
-    permission: { edit: "deny", bash: "deny", webfetch: "deny" },
-    prompt: SYSTEM_PROMPT,
-  } satisfies AgentConfig;
+    permissions: NOVEL_AGENT_BASE_PERMISSIONS,
+    system: SYSTEM_PROMPT,
+  } satisfies NovelAgentDefinition;
 }

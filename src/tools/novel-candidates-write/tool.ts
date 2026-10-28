@@ -1,9 +1,9 @@
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { toRelativePosixPath } from "../../shared/fs/paths";
 import { writeTextFile } from "../../shared/fs/write";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import type { NovelCandidatesV1 } from "../novel-apply-candidates/types";
 import type { NovelCandidatesWriteArgs, NovelCandidatesWriteResultJson } from "./types";

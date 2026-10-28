@@ -1,6 +1,6 @@
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import { sortDiagnostics } from "../../shared/errors/diagnostics";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { scanNovelProject } from "./scan";
 import type { NovelScanArgs, NovelScanResultJson } from "./types";

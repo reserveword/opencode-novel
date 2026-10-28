@@ -1,5 +1,5 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
-import { PROMPT_SECRECY_POLICY } from "./security";
+import { NOVEL_AGENT_BASE_PERMISSIONS, PROMPT_SECRECY_POLICY } from "./security";
+import type { NovelAgentDefinition } from "./types";
 
 const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 
@@ -13,13 +13,12 @@ const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 约束：
 - 默认不直接改正文；更倾向于修复 frontmatter/线程卡/角色卡等事实源。`;
 
-export function createNovelSentinelAgent(model: string): AgentConfig {
+export function createNovelSentinelAgent(model: string): NovelAgentDefinition {
   return {
     mode: "primary",
     model: model || undefined,
-    temperature: 0.1,
     description: "一致性守卫（基于报告给最小修复路径）。",
-    permission: { edit: "deny", bash: "deny", webfetch: "deny" },
-    prompt: SYSTEM_PROMPT,
-  } satisfies AgentConfig;
+    permissions: NOVEL_AGENT_BASE_PERMISSIONS,
+    system: SYSTEM_PROMPT,
+  } satisfies NovelAgentDefinition;
 }

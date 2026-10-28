@@ -1,8 +1,8 @@
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { sortDiagnostics } from "../../shared/errors/diagnostics";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { createNovelCharacterReportTool } from "../novel-character-report";
 import { createNovelEntityGapsTool } from "../novel-entity-gaps";

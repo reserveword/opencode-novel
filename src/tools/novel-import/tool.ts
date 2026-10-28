@@ -1,6 +1,5 @@
 import { existsSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import picomatch from "picomatch";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
@@ -9,6 +8,7 @@ import { readTextFileSync } from "../../shared/fs/read";
 import { writeTextFile } from "../../shared/fs/write";
 import { hash8 } from "../../shared/hashing/hash8";
 import { buildFrontmatterFile } from "../../shared/markdown/frontmatter";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { parseChineseNumber } from "../../shared/strings/chinese-number";
 import { slugify } from "../../shared/strings/slug";
 import { TEXT_ENCODINGS } from "../../shared/strings/text-encoding";

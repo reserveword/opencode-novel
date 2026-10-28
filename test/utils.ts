@@ -1,8 +1,8 @@
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import type { ToolDefinition } from "@opencode-ai/plugin";
 import { normalizeLf } from "../src/shared/fs/write";
+import type { ToolDefinition } from "../src/shared/plugin/tool";
 
 export function withTempDir<T>(fn: (dir: string) => T | Promise<T>): Promise<T> | T {
   const dir = mkdtempSync(path.join(tmpdir(), "opencode-novel-"));

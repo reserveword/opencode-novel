@@ -3,6 +3,8 @@
 `opencode-novel` 是一个面向中文小说创作流程的 OpenCode 插件。  
 它通过 `/novel-*` 命令把「初始化 → 导入 → 索引 → 巡检 → 写作 → 导出」串成可重复执行的工程化流程。
 
+> 当前版本面向 **OpenCode 2.x**，基于 `@opencode/plugin` 的 V2 插件 API。OpenCode 1.x 请使用 `0.0.x` 版本。
+
 ## 核心能力
 
 - 命令式写作工作流：`/novel-*`
@@ -26,7 +28,7 @@ bun run build
 bun run script/install-opencode.ts -- --target=global
 ```
 
-安装后重启 OpenCode。
+安装后执行 `opencode reload`（或重启 OpenCode）使插件生效。
 
 ### 3) 常用命令顺序
 
@@ -74,12 +76,17 @@ opencode-novel install --target=global
 
 成功后会输出 `install done`，并写入以下目录：
 
-- `~/.config/opencode/plugins/opencode-novel.js`
+- `~/.config/opencode/plugins/opencode-novel/index.js`
 - `~/.config/opencode/commands`
 - `~/.config/opencode/skill`
 - `~/.config/opencode/novel.jsonc`
 
-安装完成后请重启 OpenCode。
+OpenCode 2.x 会自动加载 `plugins/` 目录下的插件，因此不需要在 `opencode.json(c)` 中额外添加 `plugins` 条目。安装器会同时清理旧版本遗留的：
+
+- `~/.config/opencode/plugins/opencode-novel.js`（1.x 文件入口）
+- `opencode.json(c)` 中指向该文件或插件目录的 `plugin` / `plugins` 条目
+
+安装完成后执行 `opencode reload`（或重启 OpenCode）。
 
 ### 4) 卸载（可选）
 
@@ -143,12 +150,23 @@ manuscript/             # 小说事实源（运行时）
 
 - `dist/novel.schema.json`
 
+### 代理（Agent）覆盖（OpenCode 2.x）
+
+`novel.jsonc` 的 `agents` 段仍可覆盖内置代理：
+
+- `model` / `variant`：解析为 `provider/model#variant`；省略时继承当前会话模型
+- `prompt` / `prompt_append`：替换或追加系统提示词
+- `tools` / `permission`：映射为 OpenCode 2.x 的权限规则（`bash` → `shell`、`task` → `subagent`、`write`/`patch` → `edit`）
+- `temperature`、`top_p`、`maxTokens`、`max_steps`：OpenCode 2.x 不再按代理转发这些采样参数，设置后会被忽略并在日志中提示
+
+默认不会覆盖已存在的同名代理；如需强制覆盖，设置 `agents_force_override: true`。
+
 ## 开发命令
 
 - `bun run lint`：静态检查
 - `bun run typecheck`：类型检查
 - `bun test`：运行测试
-- `bun run check`：完整检查（lint + typecheck + test + build）
+- `bun run check`：完整检查（lint + code-rules + typecheck + test + build）
 - `bun run benchmark:index`：索引性能基准测试
 
 ## npm 发布（自动流）

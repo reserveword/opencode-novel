@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { type ToolContext, type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { fromRelativePosixPath, toRelativePosixPath } from "../../shared/fs/paths";
@@ -8,6 +7,7 @@ import { readTextFileSync } from "../../shared/fs/read";
 import { ensureDirForFile, normalizeLf, writeTextFile } from "../../shared/fs/write";
 import { createSha256Hex, createSha256HexFromBytes } from "../../shared/hashing/sha256";
 import { buildFrontmatterFile, parseFrontmatter } from "../../shared/markdown/frontmatter";
+import { type ToolContext, type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { loadOrScan } from "../novel-scan/scan";
 import { markdownToDocxBytes } from "./docx";

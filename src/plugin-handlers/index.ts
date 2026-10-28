@@ -1,1 +1,1 @@
-export { createConfigHandler } from "./config-handler";
+export { registerNovelAgents } from "./agents-handler";

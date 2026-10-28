@@ -1,6 +1,5 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import { loadBuiltinCommands } from "../../features/builtin-commands";
 import { getBuiltinSkillInstallFiles, loadBuiltinSkills } from "../../features/builtin-skills";
@@ -8,6 +7,7 @@ import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { toRelativePosixPath } from "../../shared/fs/paths";
 import { writeTextFile } from "../../shared/fs/write";
 import { buildCommandMarkdown } from "../../shared/opencode/artifacts";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { ensureNovelScaffold } from "../novel-scaffold/scaffold";
 import type { NovelSetupArgs, NovelSetupResultJson } from "./types";

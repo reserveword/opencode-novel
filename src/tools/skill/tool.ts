@@ -1,4 +1,4 @@
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { discoverAllSkills } from "./loader";
 import type { LoadedSkill } from "./types";
 

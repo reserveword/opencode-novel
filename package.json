@@ -1,6 +1,6 @@
 {
   "name": "opencode-novel",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "Novel writing workflow plugin for OpenCode (Bun/TypeScript).",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -35,8 +35,7 @@
     "test": "bun test"
   },
   "dependencies": {
-    "@opencode-ai/plugin": "^1.1.19",
-    "@opencode-ai/sdk": "^1.1.19",
+    "@opencode/plugin": "^2.2.0",
     "docx": "^9.5.1",
     "fflate": "^0.8.2",
     "js-yaml": "^4.1.1",

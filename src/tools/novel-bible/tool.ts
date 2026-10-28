@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { toRelativePosixPath } from "../../shared/fs/paths";
 import { readTextFileSync } from "../../shared/fs/read";
 import { writeTextFile } from "../../shared/fs/write";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { renderBibleSummaryMd, renderGlossaryMd } from "./render";
 import type { BibleRule, GlossaryTerm, NovelBibleArgs, NovelBibleResultJson } from "./types";

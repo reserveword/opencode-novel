@@ -1,13 +1,16 @@
 #!/usr/bin/env bun
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { applyEdits, modify, type ParseError, parse } from "jsonc-parser";
 import { loadBuiltinCommands } from "../src/features/builtin-commands/commands";
 import { getBuiltinSkillInstallFiles, loadBuiltinSkills } from "../src/features/builtin-skills";
 import { writeTextFile } from "../src/shared/fs/write";
 import { buildCommandMarkdown, yamlQuote } from "../src/shared/opencode/artifacts";
+import {
+  renderPluginShim,
+  resolvePluginInstallPaths,
+  updatePluginConfig,
+} from "../src/shared/opencode/plugin-entry";
 
 type InstallTarget = "global" | "project";
 
@@ -97,64 +100,6 @@ function detectOpencodeConfigPath(opencodeDir: string): string {
   return json;
 }
 
-function parseJsoncObject(raw: string): { data: Record<string, unknown> | null; errors: string[] } {
-  const errors: string[] = [];
-  const parseErrors: ParseError[] = [];
-  const parsed = parse(raw, parseErrors) as unknown;
-
-  if (parseErrors.length > 0) {
-    errors.push(
-      ...parseErrors.map(
-        (e) => `JSONC parse error: code=${e.error} offset=${e.offset} length=${e.length}`,
-      ),
-    );
-  }
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    errors.push("Config root must be a JSON object.");
-    return { data: null, errors };
-  }
-
-  return { data: parsed as Record<string, unknown>, errors };
-}
-
-function upsertOpencodePlugin(opencodeConfigPath: string, pluginSpecifier: string): void {
-  let raw = "";
-  try {
-    raw = existsSync(opencodeConfigPath) ? readFileSync(opencodeConfigPath, "utf8") : "";
-  } catch {
-    raw = "";
-  }
-
-  if (raw.trim().length === 0) {
-    raw = `{\n  "$schema": "https://opencode.ai/config.json"\n}\n`;
-  }
-
-  const parsed = parseJsoncObject(raw);
-  if (!parsed.data) {
-    console.warn(
-      `[install-opencode] failed to parse ${opencodeConfigPath}; will only upsert 'plugin' field.`,
-    );
-  }
-
-  const current = parsed.data?.plugin;
-  const currentPlugins: string[] =
-    typeof current === "string"
-      ? [current]
-      : Array.isArray(current)
-        ? current.filter((v): v is string => typeof v === "string")
-        : [];
-  const nextPlugins = currentPlugins.includes(pluginSpecifier)
-    ? currentPlugins
-    : [...currentPlugins, pluginSpecifier];
-
-  const edits = modify(raw, ["plugin"], nextPlugins, {
-    formattingOptions: { insertSpaces: true, tabSize: 2, eol: "\n" },
-  });
-  const updated = applyEdits(raw, edits);
-  writeTextFile(opencodeConfigPath, updated, { mode: "always" });
-}
-
 function writeFileSafe(filePath: string, content: string, options: { force: boolean }): void {
   if (!options.force && existsSync(filePath)) {
     return;
@@ -177,19 +122,30 @@ function main() {
       ? detectGlobalOpencodeDir()
       : path.join(path.resolve(options.projectRoot ?? process.cwd()), ".opencode");
 
-  const pluginDir = path.join(installRoot, "plugins");
+  const pluginPaths = resolvePluginInstallPaths(installRoot);
   const commandsDir = path.join(installRoot, "commands");
   const skillDir = path.join(installRoot, "skill");
 
-  const pluginShimPath = path.join(pluginDir, "opencode-novel.js");
-  const distUrl = pathToFileURL(distEntry).toString();
-  const pluginShim = `export { default } from ${yamlQuote(distUrl)};\n`;
+  writeFileSafe(pluginPaths.entryPath, renderPluginShim(distEntry), { force: true });
 
-  writeFileSafe(pluginShimPath, pluginShim, options);
-
-  const pluginShimUrl = pathToFileURL(pluginShimPath).toString();
   const opencodeConfigPath = detectOpencodeConfigPath(installRoot);
-  upsertOpencodePlugin(opencodeConfigPath, pluginShimUrl);
+  const pluginConfigResult = updatePluginConfig({
+    configPath: opencodeConfigPath,
+    paths: pluginPaths,
+  });
+  if (pluginConfigResult.skippedReason) {
+    console.warn(
+      `[install-opencode] could not update ${opencodeConfigPath}: ${pluginConfigResult.skippedReason}`,
+    );
+  }
+
+  // OpenCode 2.x rejects file plugin targets, so drop the 1.x shim.
+  try {
+    rmSync(pluginPaths.legacyEntryPath, { force: true });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.warn(`[install-opencode] could not remove ${pluginPaths.legacyEntryPath}: ${message}`);
+  }
 
   const commands = loadBuiltinCommands();
   for (const def of Object.values(commands)) {
@@ -223,7 +179,7 @@ function main() {
   console.log("[install-opencode] done");
   console.log(`- target: ${options.target}`);
   console.log(`- opencode dir: ${installRoot}`);
-  console.log(`- plugin shim: ${pluginShimPath}`);
+  console.log(`- plugin entry: ${pluginPaths.entryPath}`);
   console.log(`- opencode config: ${opencodeConfigPath}`);
   console.log(`- commands: ${commandsDir}`);
   console.log(`- skills: ${skillDir}`);

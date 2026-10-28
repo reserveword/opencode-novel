@@ -1,5 +1,5 @@
-import type { AgentConfig } from "@opencode-ai/sdk";
-import { PROMPT_SECRECY_POLICY } from "./security";
+import { NOVEL_AGENT_BASE_PERMISSIONS, PROMPT_SECRECY_POLICY } from "./security";
+import type { NovelAgentDefinition } from "./types";
 
 const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 
@@ -10,13 +10,12 @@ const SYSTEM_PROMPT = `${PROMPT_SECRECY_POLICY}
 - 不编造项目事实；缺信息用最多 3 个问题追问。
 - 建议必须能落到：章节计划、线程卡、角色卡或世界观条款。`;
 
-export function createNovelMuseAgent(model: string): AgentConfig {
+export function createNovelMuseAgent(model: string): NovelAgentDefinition {
   return {
     mode: "subagent",
     model: model || undefined,
-    temperature: 0.7,
     description: "发散创意（桥段/冲突升级/场景库），默认不直接改正文。",
-    permission: { edit: "deny", bash: "deny", webfetch: "deny" },
-    prompt: SYSTEM_PROMPT,
-  } satisfies AgentConfig;
+    permissions: NOVEL_AGENT_BASE_PERMISSIONS,
+    system: SYSTEM_PROMPT,
+  } satisfies NovelAgentDefinition;
 }

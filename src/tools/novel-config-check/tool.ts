@@ -1,8 +1,8 @@
 import path from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import { type ConfigLoadError, loadNovelConfig } from "../../config/load";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
 import { toRelativePosixPath } from "../../shared/fs/paths";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import type { NovelConfigCheckArgs, NovelConfigCheckResultJson } from "./types";
 

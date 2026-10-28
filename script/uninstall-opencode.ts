@@ -2,12 +2,15 @@
 import { existsSync, readdirSync, readFileSync, rmSync, statSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
-import { applyEdits, modify, type ParseError, parse } from "jsonc-parser";
 import { loadBuiltinCommands } from "../src/features/builtin-commands/commands";
 import { getBuiltinSkillInstallFiles, loadBuiltinSkills } from "../src/features/builtin-skills";
-import { normalizeLf, writeTextFile } from "../src/shared/fs/write";
+import { normalizeLf } from "../src/shared/fs/write";
 import { buildCommandMarkdown } from "../src/shared/opencode/artifacts";
+import {
+  removeGeneratedPluginShim,
+  resolvePluginInstallPaths,
+  updatePluginConfig,
+} from "../src/shared/opencode/plugin-entry";
 
 type UninstallTarget = "global" | "project";
 
@@ -97,81 +100,6 @@ function detectOpencodeConfigPath(opencodeDir: string): string {
   return json;
 }
 
-function parseJsoncObject(raw: string): { data: Record<string, unknown> | null; errors: string[] } {
-  const errors: string[] = [];
-  const parseErrors: ParseError[] = [];
-  const parsed = parse(raw, parseErrors) as unknown;
-
-  if (parseErrors.length > 0) {
-    errors.push(
-      ...parseErrors.map(
-        (e) => `JSONC parse error: code=${e.error} offset=${e.offset} length=${e.length}`,
-      ),
-    );
-  }
-
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    errors.push("Config root must be a JSON object.");
-    return { data: null, errors };
-  }
-
-  return { data: parsed as Record<string, unknown>, errors };
-}
-
-function upsertOpencodePluginRemoval(options: {
-  opencodeConfigPath: string;
-  pluginSpecifier: string;
-  dryRun: boolean;
-}): { removed: boolean; skipped: boolean; reason?: string } {
-  let raw = "";
-  try {
-    raw = existsSync(options.opencodeConfigPath)
-      ? readFileSync(options.opencodeConfigPath, "utf8")
-      : "";
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return { removed: false, skipped: true, reason: `读取失败: ${message}` };
-  }
-
-  if (raw.trim().length === 0) {
-    return { removed: false, skipped: true, reason: "配置文件为空/不存在" };
-  }
-
-  const parsed = parseJsoncObject(raw);
-  if (!parsed.data) {
-    return { removed: false, skipped: true, reason: "配置解析失败（JSONC）" };
-  }
-
-  const current = parsed.data.plugin;
-  const currentPlugins: string[] =
-    typeof current === "string"
-      ? [current]
-      : Array.isArray(current)
-        ? current.filter((v) => typeof v === "string")
-        : [];
-
-  const nextPlugins = currentPlugins.filter((p) => p !== options.pluginSpecifier);
-  if (nextPlugins.length === currentPlugins.length) {
-    return { removed: false, skipped: true, reason: "opencode.json 未包含该 plugin" };
-  }
-
-  const edits = modify(raw, ["plugin"], nextPlugins.length > 0 ? nextPlugins : undefined, {
-    formattingOptions: { insertSpaces: true, tabSize: 2, eol: "\n" },
-  });
-  const updated = applyEdits(raw, edits);
-
-  if (!options.dryRun) {
-    try {
-      writeTextFile(options.opencodeConfigPath, updated, { mode: "always" });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return { removed: false, skipped: true, reason: `写回失败: ${message}` };
-    }
-  }
-
-  return { removed: true, skipped: false };
-}
-
 function removeFileSafe(
   filePath: string,
   options: { dryRun: boolean },
@@ -252,21 +180,20 @@ function main() {
       ? detectGlobalOpencodeDir()
       : path.join(path.resolve(options.projectRoot ?? process.cwd()), ".opencode");
 
-  const pluginDir = path.join(installRoot, "plugins");
+  const pluginPaths = resolvePluginInstallPaths(installRoot);
   const commandsDir = path.join(installRoot, "commands");
   const skillDir = path.join(installRoot, "skill");
 
-  const pluginShimPath = path.join(pluginDir, "opencode-novel.js");
-  const pluginShimUrl = pathToFileURL(pluginShimPath).toString();
-
   const opencodeConfigPath = detectOpencodeConfigPath(installRoot);
-  const pluginConfigResult = upsertOpencodePluginRemoval({
-    opencodeConfigPath,
-    pluginSpecifier: pluginShimUrl,
+  const pluginConfigResult = updatePluginConfig({
+    configPath: opencodeConfigPath,
+    paths: pluginPaths,
     dryRun: options.dryRun,
   });
 
-  const removedPluginShim = removeFileSafe(pluginShimPath, options);
+  const removedPluginShim = removeGeneratedPluginShim(pluginPaths.entryPath, options);
+  const removedLegacyShim = removeFileSafe(pluginPaths.legacyEntryPath, options);
+  removeDirIfEmpty(pluginPaths.pluginDir, options);
 
   const removedCommands: string[] = [];
   const skippedCommands: Array<{ path: string; reason: string }> = [];
@@ -308,7 +235,10 @@ function main() {
   console.log(`- opencode dir: ${installRoot}`);
   console.log(`- opencode config: ${opencodeConfigPath}`);
   console.log(`- removed plugin shim: ${removedPluginShim.removed && !removedPluginShim.skipped}`);
-  console.log(`- removed plugin from config: ${pluginConfigResult.removed}`);
+  console.log(
+    `- removed legacy plugin shim: ${removedLegacyShim.removed && !removedLegacyShim.skipped}`,
+  );
+  console.log(`- removed plugin from config: ${pluginConfigResult.changed}`);
   console.log(`- removed commands: ${removedCommands.length}`);
   console.log(`- removed skills: ${removedSkills.length}`);
   console.log(

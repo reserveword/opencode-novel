@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
-import { type ToolDefinition, tool } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
+import { type ToolDefinition, tool } from "../../shared/plugin/tool";
 import { formatToolMarkdownOutput } from "../../shared/tool-output";
 import { ensureNovelScaffold } from "./scaffold";
 import type { NovelScaffoldArgs, NovelScaffoldResultJson } from "./types";

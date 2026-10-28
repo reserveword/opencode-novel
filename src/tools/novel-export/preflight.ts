@@ -1,6 +1,6 @@
-import type { ToolContext } from "@opencode-ai/plugin";
 import type { NovelConfig } from "../../config/schema";
 import type { Diagnostic } from "../../shared/errors/diagnostics";
+import type { ToolContext } from "../../shared/plugin/tool";
 import type { NovelContinuityResultJson } from "../novel-continuity-check";
 import { createNovelContinuityCheckTool } from "../novel-continuity-check";
 import type { NovelForeshadowingResultJson } from "../novel-foreshadowing-audit";
@@ -20,16 +20,14 @@ import type {
 } from "./types";
 
 /** 创建本地预检执行所需的最小工具上下文（无代理运行时）。 */
-function createFallbackToolContext(directory: string): ToolContext {
+function createFallbackToolContext(_directory: string): ToolContext {
   return {
     sessionID: "local",
     messageID: "local",
+    id: "local",
     agent: "novel_export",
-    directory,
-    worktree: directory,
-    abort: new AbortController().signal,
-    metadata() {},
-    ask: async () => {},
+    signal: new AbortController().signal,
+    progress: async () => {},
   };
 }
 
