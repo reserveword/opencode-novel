@@ -28,11 +28,23 @@ export type NovelPermissionRule = {
 };
 
 /**
+ * OpenCode 2.x generation settings applied through the session `context` hook.
+ *
+ * Keys match `GenerationOptionsFields`, which is the typed part of the hook's
+ * `event.options`.
+ */
+export type NovelAgentSampling = {
+  readonly temperature?: number;
+  readonly topP?: number;
+  readonly maxTokens?: number;
+};
+
+/**
  * Plugin-neutral agent definition.
  *
- * Matches the OpenCode 2.x `Agent.Info` fields the plugin manages: `mode`,
- * `description`, `system`, `model` and `permissions`. OpenCode 2.x does not send
- * per-agent `temperature`/`top_p` to providers, so those fields are gone.
+ * Mirrors the OpenCode 2.x `Agent.Info` fields the plugin manages: `mode`,
+ * `description`, `system`, `model`, `permissions`, `steps` and `sampling`.
+ * Sampling settings reach the model request through the session `context` hook.
  */
 export type NovelAgentDefinition = {
   readonly mode: NovelAgentMode;
@@ -40,4 +52,8 @@ export type NovelAgentDefinition = {
   readonly system?: string;
   readonly model?: string;
   readonly permissions?: readonly NovelPermissionRule[];
+  /** Generation settings applied per model request through the `context` hook. */
+  readonly sampling?: NovelAgentSampling;
+  /** Maximum model steps before OpenCode forces a text-only answer. */
+  readonly steps?: number;
 };

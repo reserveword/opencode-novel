@@ -42,8 +42,7 @@ function createMinimalConfigJsonc(manuscriptDir: string): string {
 
   "compat": {
     "export_slashcommand_tool": true,
-    "export_skill_tool": true,
-    "export_skill_mcp_tool": false
+    "export_skill_tool": true
   }
 }
 `;

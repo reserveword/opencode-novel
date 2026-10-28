@@ -2,24 +2,14 @@ import { Model, type Plugin } from "@opencode/plugin";
 import { createNovelAgents } from "../agents";
 import type {
   NovelAgentDefinition,
+  NovelAgentSampling,
   NovelPermissionEffect,
   NovelPermissionRule,
 } from "../agents/types";
 import type { NovelConfig } from "../config/schema";
 
 /** OpenCode 2.x plugin context type derived from the public `Plugin.define` helper. */
-type OpenCodePluginContext = Parameters<Plugin.Plugin["setup"]>[0];
-
-/** V1 permission keys that map to a different OpenCode 2.x permission action. */
-const PERMISSION_ACTION_ALIASES: Record<string, string> = {
-  bash: "shell",
-  task: "subagent",
-  write: "edit",
-  patch: "edit",
-};
-
-/** V1 per-agent sampling fields that OpenCode 2.x no longer forwards to providers. */
-const UNSUPPORTED_OVERRIDE_FIELDS = ["temperature", "top_p", "maxTokens", "max_steps"] as const;
+export type OpenCodePluginContext = Parameters<Plugin.Plugin["setup"]>[0];
 
 type AgentOverride = Record<string, unknown>;
 
@@ -34,40 +24,102 @@ function resolveAgentName(baseName: string, prefix: string): string {
   return `${prefix}${baseName}`;
 }
 
-/** Map a V1 permission effect value onto an OpenCode 2.x effect. */
-function normalizeEffect(value: unknown): NovelPermissionEffect | undefined {
+/** Parse a permission effect value. */
+function toPermissionEffect(value: unknown): NovelPermissionEffect | undefined {
   if (value === "allow" || value === "ask" || value === "deny") return value;
   return undefined;
 }
 
-/** Convert V1 `permission` / `tools` overrides into OpenCode 2.x permission rules. */
-function toPermissionRules(override: AgentOverride): NovelPermissionRule[] {
+/**
+ * Convert a `permission` override into OpenCode 2.x permission rules.
+ *
+ * Each entry is either a shorthand effect (`"ask"`) applied to every resource,
+ * or a pattern map (`{ "git push *": "ask" }`). Pattern order is preserved so
+ * later entries still win.
+ */
+export function toPermissionRules(override: AgentOverride): NovelPermissionRule[] {
   const rules: NovelPermissionRule[] = [];
+  if (!isRecord(override.permission)) return rules;
 
-  if (isRecord(override.tools)) {
-    for (const [toolName, allowed] of Object.entries(override.tools)) {
-      if (typeof allowed !== "boolean") continue;
-      rules.push({
-        action: toolName,
-        resource: "*",
-        effect: allowed ? "allow" : "deny",
-      });
+  for (const [action, value] of Object.entries(override.permission)) {
+    const shorthand = toPermissionEffect(value);
+    if (shorthand) {
+      rules.push({ action, resource: "*", effect: shorthand });
+      continue;
     }
-  }
 
-  if (isRecord(override.permission)) {
-    for (const [action, effect] of Object.entries(override.permission)) {
-      const normalized = normalizeEffect(effect);
-      if (!normalized) continue;
-      rules.push({
-        action: PERMISSION_ACTION_ALIASES[action] ?? action,
-        resource: "*",
-        effect: normalized,
-      });
+    if (!isRecord(value)) continue;
+    for (const [resource, effect] of Object.entries(value)) {
+      const parsedEffect = toPermissionEffect(effect);
+      if (!parsedEffect) continue;
+      rules.push({ action, resource, effect: parsedEffect });
     }
   }
 
   return rules;
+}
+
+/** Read a finite number, ignoring anything else. */
+function numberOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+/**
+ * Extract sampling parameters as OpenCode 2.x generation settings.
+ *
+ * The session `context` hook takes camelCase generation keys (`topP`,
+ * `maxTokens`).
+ */
+export function toSamplingOptions(override: AgentOverride): NovelAgentSampling | undefined {
+  const sampling: {
+    temperature?: number;
+    topP?: number;
+    maxTokens?: number;
+  } = {};
+
+  const temperature = numberOrUndefined(override.temperature);
+  if (temperature !== undefined) sampling.temperature = temperature;
+
+  const topP = numberOrUndefined(override.topP);
+  if (topP !== undefined) sampling.topP = topP;
+
+  const maxTokens = numberOrUndefined(override.maxTokens);
+  if (maxTokens !== undefined) sampling.maxTokens = maxTokens;
+
+  return Object.keys(sampling).length > 0 ? sampling : undefined;
+}
+
+/**
+ * Apply a managed agent's sampling settings to a session `context` event.
+ *
+ * `event.options` is the pre-dispatch surface OpenCode 2.x documents for
+ * generation settings, so this is what makes per-agent `temperature` / `topP` /
+ * `maxTokens` effective. Agents the plugin does not manage are left alone.
+ */
+export function applySamplingOptions(
+  agentID: string,
+  options: Record<string, unknown>,
+  sampling: ReadonlyMap<string, NovelAgentSampling>,
+): boolean {
+  const agentSampling = sampling.get(agentID);
+  if (!agentSampling) return false;
+
+  if (agentSampling.temperature !== undefined) {
+    options.temperature = agentSampling.temperature;
+  }
+  if (agentSampling.topP !== undefined) {
+    options.topP = agentSampling.topP;
+  }
+  if (agentSampling.maxTokens !== undefined) {
+    options.maxTokens = agentSampling.maxTokens;
+  }
+
+  return true;
+}
+
+/** Read a positive integer, ignoring anything else. */
+function positiveIntegerOrUndefined(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : undefined;
 }
 
 /** Parse a `provider/model#variant` reference, returning undefined when malformed. */
@@ -82,18 +134,11 @@ function parseModelRef(value: string): Model.Ref | undefined {
 }
 
 /** Apply `novel.jsonc` per-agent overrides onto a generated agent definition. */
-function applyAgentOverride(
+export function applyAgentOverride(
   base: NovelAgentDefinition,
   override: AgentOverride | undefined,
 ): NovelAgentDefinition {
   if (!override) return base;
-
-  const unsupported = UNSUPPORTED_OVERRIDE_FIELDS.filter((field) => override[field] !== undefined);
-  if (unsupported.length > 0) {
-    console.warn(
-      `[opencode-novel] agent override field(s) ignored on OpenCode 2.x: ${unsupported.join(", ")}`,
-    );
-  }
 
   const modelValue = typeof override.model === "string" ? override.model : base.model;
   const variant = typeof override.variant === "string" ? override.variant : undefined;
@@ -107,11 +152,16 @@ function applyAgentOverride(
   const promptAppend = typeof override.prompt_append === "string" ? override.prompt_append : "";
   const system = promptAppend ? (prompt ? `${prompt}\n\n${promptAppend}` : promptAppend) : prompt;
 
+  const sampling = toSamplingOptions(override);
+  const steps = positiveIntegerOrUndefined(override.steps) ?? base.steps;
+
   return {
     ...base,
     model,
     system,
+    steps,
     permissions: [...(base.permissions ?? []), ...toPermissionRules(override)],
+    sampling: sampling ?? base.sampling,
   };
 }
 
@@ -121,6 +171,11 @@ function applyAgentOverride(
  * OpenCode 2.x has no mutable config hook; agents are declared by writing into
  * the agent registry. `update` creates the agent when the id is absent and
  * edits it otherwise.
+ *
+ * Per-agent sampling is registered as a session `context` hook, which is the
+ * surface OpenCode 2.x documents for generation settings. The hook reads the
+ * registry the transform fills, so it only ever touches agents this plugin
+ * manages.
  */
 export async function registerNovelAgents(
   ctx: OpenCodePluginContext,
@@ -139,8 +194,15 @@ export async function registerNovelAgents(
   const forceOverride = pluginConfig.agents_force_override ?? false;
 
   const agents = createNovelAgents({ preset, model: "" });
+  const sampling = new Map<string, NovelAgentSampling>();
+
+  await ctx.session.hook("context", (event) => {
+    applySamplingOptions(String(event.agent), event.options, sampling);
+  });
 
   await ctx.agent.transform((editor) => {
+    sampling.clear();
+
     for (const [baseName, agentDefinition] of Object.entries(agents)) {
       const name = resolveAgentName(baseName, prefix);
       const baseNameLower = baseName.toLowerCase();
@@ -167,10 +229,17 @@ export async function registerNovelAgents(
         if (modelRef) {
           agent.model = modelRef;
         }
+        if (finalAgent.steps !== undefined) {
+          agent.steps = finalAgent.steps;
+        }
         if (finalAgent.permissions && finalAgent.permissions.length > 0) {
           agent.permissions = [...agent.permissions, ...finalAgent.permissions];
         }
       });
+
+      if (finalAgent.sampling) {
+        sampling.set(name, finalAgent.sampling);
+      }
     }
   });
 }

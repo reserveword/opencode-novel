@@ -204,18 +204,25 @@ const ContextPackSchema = z
     redaction: { enabled: false, patterns: [] },
   });
 
+const PermissionEffectSchema = z.enum(["allow", "ask", "deny"]);
+
 const AgentOverrideSchema = z
   .object({
     model: z.string().optional(),
     variant: z.string().optional(),
     temperature: z.number().min(0).max(2).optional(),
-    top_p: z.number().min(0).max(1).optional(),
+    topP: z.number().min(0).max(1).optional(),
     maxTokens: z.number().int().positive().optional(),
-    category: z.string().optional(),
+    steps: z.number().int().positive().optional(),
     prompt: z.string().optional(),
     prompt_append: z.string().optional(),
-    tools: z.record(z.string(), z.boolean()).optional(),
-    permission: z.record(z.string(), z.unknown()).optional(),
+    // Shorthand (`"ask"`) or a resource pattern map (`{ "git push *": "ask" }`).
+    permission: z
+      .record(
+        z.string(),
+        z.union([PermissionEffectSchema, z.record(z.string(), PermissionEffectSchema)]),
+      )
+      .optional(),
   })
   .passthrough();
 
@@ -325,12 +332,10 @@ const CompatSchema = z
   .object({
     export_slashcommand_tool: z.boolean().default(true),
     export_skill_tool: z.boolean().default(true),
-    export_skill_mcp_tool: z.boolean().default(false),
   })
   .default({
     export_slashcommand_tool: true,
     export_skill_tool: true,
-    export_skill_mcp_tool: false,
   });
 
 export const NovelConfigSchema = z

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-10-28T15:03:34.289Z",
+  "generatedAt": "2026-10-28T16:03:36.277Z",
   "violations": [
     "MISSING_DOC_COMMENT|src/agents/editor.ts|FunctionDeclaration|createNovelEditorAgent|15",
     "MISSING_DOC_COMMENT|src/agents/experts.ts|FunctionDeclaration|createNovelCharacterExpertAgent|36",
@@ -223,7 +223,7 @@
     "MISSING_DOC_COMMENT|src/tools/novel-outline/tool.ts|MethodDeclaration|execute|156",
     "MISSING_DOC_COMMENT|src/tools/novel-scaffold/scaffold.ts|FunctionDeclaration|createMinimalConfigJsonc|23",
     "MISSING_DOC_COMMENT|src/tools/novel-scaffold/scaffold.ts|FunctionDeclaration|ensureDir|15",
-    "MISSING_DOC_COMMENT|src/tools/novel-scaffold/scaffold.ts|FunctionDeclaration|ensureNovelScaffold|52",
+    "MISSING_DOC_COMMENT|src/tools/novel-scaffold/scaffold.ts|FunctionDeclaration|ensureNovelScaffold|51",
     "MISSING_DOC_COMMENT|src/tools/novel-scaffold/templates.ts|FunctionDeclaration|createWorldTemplate|1",
     "MISSING_DOC_COMMENT|src/tools/novel-scaffold/tool.ts|FunctionDeclaration|createNovelScaffoldTool|8",
     "MISSING_DOC_COMMENT|src/tools/novel-scaffold/tool.ts|MethodDeclaration|execute|23",

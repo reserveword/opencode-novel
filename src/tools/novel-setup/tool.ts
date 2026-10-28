@@ -14,8 +14,8 @@ import type { NovelSetupArgs, NovelSetupResultJson } from "./types";
 
 function createProjectConfigJsonc(options: { manuscriptDir: string; disableCompatTools: boolean }) {
   const compat = options.disableCompatTools
-    ? { export_slashcommand_tool: false, export_skill_tool: false, export_skill_mcp_tool: false }
-    : { export_slashcommand_tool: true, export_skill_tool: true, export_skill_mcp_tool: false };
+    ? { export_slashcommand_tool: false, export_skill_tool: false }
+    : { export_slashcommand_tool: true, export_skill_tool: true };
 
   return `{
   // Project config for opencode-novel plugin.

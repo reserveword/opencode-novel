@@ -156,8 +156,12 @@ manuscript/             # 小说事实源（运行时）
 
 - `model` / `variant`：解析为 `provider/model#variant`；省略时继承当前会话模型
 - `prompt` / `prompt_append`：替换或追加系统提示词
-- `tools` / `permission`：映射为 OpenCode 2.x 的权限规则（`bash` → `shell`、`task` → `subagent`、`write`/`patch` → `edit`）
-- `temperature`、`top_p`、`maxTokens`、`max_steps`：OpenCode 2.x 不再按代理转发这些采样参数，设置后会被忽略并在日志中提示
+- `permission`：映射为 OpenCode 2.x 的权限规则，动作名使用 V2 名称（`edit`、`shell`、`subagent`、`read`、`webfetch` 等）
+  - 支持简写 `edit: "deny"`，也支持资源模式表，例如 `shell: { "*": "ask", "git log *": "allow" }`，会展开成按顺序匹配的资源级规则（后匹配者生效）
+- `temperature` / `topP` / `maxTokens`：通过会话 `context` 钩子写入模型请求的生成参数
+- `steps`：单代理步数上限
+
+采样参数只通过 `context` 钩子生效，且只作用于本插件注册的代理，不会影响用户自己定义的同名代理（除非设置 `agents_force_override: true`）。
 
 默认不会覆盖已存在的同名代理；如需强制覆盖，设置 `agents_force_override: true`。
 

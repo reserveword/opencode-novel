@@ -316,8 +316,8 @@ function runInstall(argv: string[]): void {
   const novelConfigPath = path.join(installRoot, "novel.jsonc");
   if (options.force || !existsSync(novelConfigPath)) {
     const compat = options.disableCompatTools
-      ? { export_slashcommand_tool: false, export_skill_tool: false, export_skill_mcp_tool: false }
-      : { export_slashcommand_tool: true, export_skill_tool: true, export_skill_mcp_tool: false };
+      ? { export_slashcommand_tool: false, export_skill_tool: false }
+      : { export_slashcommand_tool: true, export_skill_tool: true };
     const novelConfig = `{
   // Global defaults for opencode-novel plugin.
   "agents_preset": ${yamlQuote(options.agentsPreset)},
